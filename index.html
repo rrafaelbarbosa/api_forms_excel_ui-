@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pesquisa de Satisfação · VeloStore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,300;0,400;0,600;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green:   #006633;
+  --green2:  #009640;
+  --yellow:  #FFDF00;
+  --yellow2: #F4C400;
+  --blue:    #003087;
+  --blue2:   #0047AB;
+  --white:   #FAFAF5;
+  --off:     #F0EDE0;
+  --dark:    #0A1A0E;
+  --muted:   #6B7B6E;
+  --radius:  14px;
+}
+
+html, body {
+  min-height: 100vh;
+  background: var(--dark);
+  font-family: 'Barlow', sans-serif;
+  font-weight: 400;
+  overflow-x: hidden;
+}
+
+/* ── LAYOUT ── */
+.shell {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+/* ── LEFT PANEL (image + branding) ── */
+.panel-left {
+  position: relative;
+  overflow: hidden;
+  background: var(--dark);
+}
+
+.panel-left .bg-img {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: opacity .8s ease, transform 1s ease;
+  transform: scale(1.04);
+}
+.panel-left .bg-img.active {
+  opacity: 1;
+  transform: scale(1);
+}
+.panel-left .bg-img:not(.active) {
+  opacity: 0;
+  transform: scale(1.08);
+}
+
+.panel-left .overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(0,102,51,0.55) 0%,
+    rgba(0,30,80,0.7) 100%
+  );
+  z-index: 1;
+}
+
+/* diagonal stripe accent */
+.panel-left .stripe {
+  position: absolute;
+  bottom: -30px; right: -30px;
+  width: 220px; height: 500px;
+  background: var(--yellow);
+  opacity: 0.08;
+  transform: rotate(-20deg);
+  z-index: 1;
+}
+
+.panel-left .brand {
+  position: relative;
+  z-index: 2;
+  padding: 44px 40px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-icon {
+  width: 42px; height: 42px;
+  background: var(--yellow);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+.brand-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  color: var(--white);
+  letter-spacing: .08em;
+}
+.brand-name span { color: var(--yellow); }
+
+.panel-left .caption {
+  position: absolute;
+  bottom: 48px; left: 40px; right: 40px;
+  z-index: 2;
+}
+.caption-step {
+  font-size: 11px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--yellow);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+.caption-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 46px;
+  line-height: 1.05;
+  color: var(--white);
+  text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  transition: all .5s ease;
+}
+.caption-sub {
+  margin-top: 10px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.65);
+  font-style: italic;
+  line-height: 1.5;
+  transition: all .5s ease;
+}
+
+/* dot nav */
+.dot-nav {
+  position: absolute;
+  bottom: 48px; right: 32px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dnav {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  border: 1px solid rgba(255,255,255,0.3);
+  transition: all .3s;
+}
+.dnav.active {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  height: 24px;
+  border-radius: 4px;
+}
+
+/* ── RIGHT PANEL (form) ── */
+.panel-right {
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow-y: auto;
+}
+
+/* top accent bar */
+.progress-bar {
+  height: 5px;
+  background: var(--off);
+  flex-shrink: 0;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green2), var(--yellow2));
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+  border-radius: 0 4px 4px 0;
+}
+
+.form-inner {
+  flex: 1;
+  padding: 52px 48px 44px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Steps */
+.step { display: none; }
+.step.active { display: flex; flex-direction: column; flex: 1; animation: fadeUp .45s ease; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,150,64,0.1);
+  border: 1px solid rgba(0,150,64,0.25);
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 100px;
+  margin-bottom: 20px;
+  width: fit-content;
+}
+.step-badge .pip {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green2);
+}
+
+.qlabel {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  line-height: 1.1;
+  color: var(--dark);
+  margin-bottom: 6px;
+  letter-spacing: .02em;
+}
+.qsub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 32px;
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+/* Input */
+.field-input {
+  width: 100%;
+  border: 2px solid #DDD9CE;
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 16px;
+  color: var(--dark);
+  background: var(--white);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.field-input::placeholder { color: #BAB5A6; }
+.field-input:focus {
+  border-color: var(--green2);
+  box-shadow: 0 0 0 4px rgba(0,150,64,0.1);
+}
+textarea.field-input { min-height: 130px; resize: none; line-height: 1.6; }
+
+.char-hint {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+  margin-top: 6px;
+  margin-bottom: 32px;
+}
+
+/* NPS */
+.nps-grid {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.nps-btn {
+  aspect-ratio: 1;
+  border: 2px solid #DDD9CE;
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--muted);
+  font-family: 'Barlow', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.nps-btn:hover { border-color: var(--green2); color: var(--green); transform: translateY(-3px); }
+.nps-btn.sel-bad  { background: #D94F3D; border-color: #D94F3D; color: #fff; transform: translateY(-4px); box-shadow: 0 6px 18px rgba(217,79,61,.3); }
+.nps-btn.sel-ok   { background: var(--yellow2); border-color: var(--yellow2); color: var(--dark); transform: translateY(-4px); box-shadow: 0 6px 18px rgba(244,196,0,.3); }
+.nps-btn.sel-good { background: var(--green2); border-color: var(--green2); color: #fff; transform: translateY(-4px); box-shadow: 0 6px 18px rgba(0,150,64,.3); }
+
+.nps-scale {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--muted);
+  letter-spacing: .02em;
+  margin-bottom: 16px;
+}
+.nps-mood {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  min-height: 24px;
+  color: var(--dark);
+  transition: all .3s;
+  margin-bottom: 32px;
+  opacity: 0;
+}
+.nps-mood.visible { opacity: 1; }
+
+/* Radio cards */
+.radio-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
+.rcard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 2px solid #DDD9CE;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all .2s;
+  background: var(--white);
+  user-select: none;
+}
+.rcard:hover { border-color: var(--green2); background: rgba(0,150,64,0.03); }
+.rcard.selected {
+  border-color: var(--green2);
+  background: rgba(0,150,64,0.07);
+}
+.rcard-dot {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2px solid #C5C0B0;
+  flex-shrink: 0;
+  transition: all .2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.rcard.selected .rcard-dot {
+  border-color: var(--green2);
+  background: var(--green2);
+}
+.rcard-dot::after {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: white;
+  opacity: 0; transform: scale(0);
+  transition: all .2s;
+}
+.rcard.selected .rcard-dot::after { opacity: 1; transform: scale(1); }
+.rcard-emoji { font-size: 22px; flex-shrink: 0; }
+.rcard-text { font-size: 15px; color: var(--dark); font-weight: 400; line-height: 1.3; }
+.rcard-sub { font-size: 12px; color: var(--muted); font-weight: 300; margin-top: 2px; }
+
+/* Buttons */
+.btn-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 24px;
+}
+.btn-back {
+  display: flex; align-items: center; gap: 6px;
+  background: none;
+  border: none;
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color .2s;
+  padding: 8px 0;
+}
+.btn-back:hover { color: var(--dark); }
+
+.btn-next {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--green);
+  color: var(--yellow);
+  border: none;
+  border-radius: var(--radius);
+  padding: 15px 30px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: .08em;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-next:disabled { background: #C8C4B5; color: #A09C8E; cursor: not-allowed; }
+.btn-next:not(:disabled):hover {
+  background: var(--green2);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(0,102,51,0.3);
+}
+.btn-arrow { font-size: 22px; transition: transform .2s; }
+.btn-next:not(:disabled):hover .btn-arrow { transform: translateX(4px); }
+
+/* ── SUCCESS ── */
+#step-success {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.success-ring {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  border: 3px solid var(--green2);
+  background: rgba(0,150,64,0.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px;
+  margin: 0 auto 28px;
+  animation: pop .55s cubic-bezier(.17,.67,.3,1.4);
+}
+@keyframes pop { from { opacity:0; transform:scale(0.3); } to { opacity:1; transform:scale(1); } }
+.success-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px;
+  letter-spacing: .03em;
+  color: var(--dark);
+  margin-bottom: 12px;
+}
+.success-sub {
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 320px;
+  margin: 0 auto;
+  line-height: 1.6;
+  font-weight: 300;
+}
+.success-tag {
+  margin-top: 24px;
+  display: inline-block;
+  background: var(--yellow);
+  color: var(--dark);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 16px;
+  border-radius: 100px;
+  letter-spacing: .05em;
+}
+
+/* ── APP PREVIEW THUMBNAILS ── */
+.app-preview {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 28px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.app-preview::-webkit-scrollbar { display: none; }
+.app-thumb {
+  flex-shrink: 0;
+  width: 88px;
+  height: 64px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 2px solid transparent;
+  transition: all .2s;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.app-thumb:hover, .app-thumb.active { opacity: 1; border-color: var(--green2); transform: translateY(-2px); }
+
+/* ── MOBILE ── */
+@media (max-width: 820px) {
+  .shell { grid-template-columns: 1fr; }
+  .panel-left {
+    height: 240px;
+  }
+  .panel-left .caption { bottom: 24px; left: 24px; right: 24px; }
+  .caption-title { font-size: 32px; }
+  .dot-nav { display: none; }
+  .form-inner { padding: 32px 24px 32px; }
+  .qlabel { font-size: 28px; }
+  .nps-grid { gap: 4px; }
+  .nps-btn { font-size: 12px; border-radius: 8px; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ══ LEFT PANEL ══ -->
+  <div class="panel-left" id="panel-left">
+    <!-- Background images (Unsplash free) -->
+    <div class="bg-img active" id="img-1" style="background-image:url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=900&q=80')"></div>
+    <div class="bg-img"        id="img-2" style="background-image:url('https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=900&q=80')"></div>
+    <div class="bg-img"        id="img-3" style="background-image:url('https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?w=900&q=80')"></div>
+    <div class="bg-img"        id="img-4" style="background-image:url('https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=900&q=80')"></div>
+    <div class="overlay"></div>
+    <div class="stripe"></div>
+
+    <div class="brand">
+      <div class="brand-icon">🚲</div>
+      <div class="brand-name">VELO<span>STORE</span></div>
+    </div>
+
+    <div class="caption">
+      <div class="caption-step" id="cap-step">PESQUISA DE SATISFAÇÃO</div>
+      <div class="caption-title" id="cap-title">Pedala com a gente?</div>
+      <div class="caption-sub" id="cap-sub">Queremos saber como foi sua experiência em nossa loja de bikes.</div>
+    </div>
+
+    <div class="dot-nav">
+      <div class="dnav active" id="dn1"></div>
+      <div class="dnav"        id="dn2"></div>
+      <div class="dnav"        id="dn3"></div>
+      <div class="dnav"        id="dn4"></div>
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL ══ -->
+  <div class="panel-right">
+    <div class="progress-bar">
+      <div class="progress-fill" id="prog" style="width:25%"></div>
+    </div>
+
+    <div class="form-inner">
+
+      <!-- STEP 1: Nome -->
+      <div class="step active" id="step-1">
+        <div class="step-badge"><span class="pip"></span> Etapa 1 de 4</div>
+        <h2 class="qlabel">Qual é o seu nome?</h2>
+        <p class="qsub">Vamos personalizar essa conversa. Pode ser só o primeiro nome! 👋</p>
+        <input class="field-input" type="text" id="inp-nome" placeholder="Ex: João Silva" autocomplete="name" />
+        <div style="flex:1"></div>
+        <div class="btn-row">
+          <span></span>
+          <button class="btn-next" id="btn1" disabled onclick="goTo(2)">
+            PRÓXIMO <span class="btn-arrow">→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: NPS -->
+      <div class="step" id="step-2">
+        <div class="step-badge"><span class="pip"></span> Etapa 2 de 4</div>
+        <h2 class="qlabel">Qual nota você dá para nós?</h2>
+        <p class="qsub">De 0 a 10 — o quanto você está satisfeito com o app da VeloStore?</p>
+        <div class="nps-grid" id="nps-grid"></div>
+        <div class="nps-scale"><span>Péssimo</span><span>Excelente</span></div>
+        <div class="nps-mood" id="nps-mood"></div>
+        <div style="flex:1"></div>
+        <div class="btn-row">
+          <button class="btn-back" onclick="goTo(1)">← Voltar</button>
+          <button class="btn-next" id="btn2" disabled onclick="goTo(3)">
+            PRÓXIMO <span class="btn-arrow">→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Experiência -->
+      <div class="step" id="step-3">
+        <div class="step-badge"><span class="pip"></span> Etapa 3 de 4</div>
+        <h2 class="qlabel">Conta como foi!</h2>
+        <p class="qsub">Descreva sua experiência usando o app da VeloStore. O que você amou? O que pode melhorar?</p>
+
+        <!-- App screenshots as context -->
+        <div class="app-preview" id="app-preview">
+          <img class="app-thumb active" src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=80" alt="bike 1" onclick="thumbClick(this,0)">
+          <img class="app-thumb" src="https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=200&q=80" alt="bike 2" onclick="thumbClick(this,1)">
+          <img class="app-thumb" src="https://images.unsplash.com/photo-1507035895480-2b3156c31fc8?w=200&q=80" alt="bike 3" onclick="thumbClick(this,2)">
+          <img class="app-thumb" src="https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=200&q=80" alt="bike 4" onclick="thumbClick(this,3)">
+        </div>
+
+        <textarea class="field-input" id="inp-exp" placeholder="Ex: Adorei a navegação, mas senti falta de filtros por tipo de bicicleta..." maxlength="500"></textarea>
+        <div class="char-hint"><span id="char-cnt">0</span>/500 caracteres</div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="goTo(2)">← Voltar</button>
+          <button class="btn-next" id="btn3" disabled onclick="goTo(4)">
+            PRÓXIMO <span class="btn-arrow">→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Indicaria -->
+      <div class="step" id="step-4">
+        <div class="step-badge"><span class="pip"></span> Etapa 4 de 4</div>
+        <h2 class="qlabel">Você indicaria a VeloStore?</h2>
+        <p class="qsub">Para amigos, família ou outros ciclistas apaixonados por bikes 🚴</p>
+
+        <div class="radio-list">
+          <div class="rcard" data-v="Sim" onclick="pickRadio(this)">
+            <div class="rcard-dot"></div>
+            <span class="rcard-emoji">🏆</span>
+            <div>
+              <div class="rcard-text">Sim, com certeza!</div>
+              <div class="rcard-sub">Recomendaria sem hesitar</div>
+            </div>
+          </div>
+          <div class="rcard" data-v="Indicaria, mas com resalvas" onclick="pickRadio(this)">
+            <div class="rcard-dot"></div>
+            <span class="rcard-emoji">⚠️</span>
+            <div>
+              <div class="rcard-text">Indicaria, mas com ressalvas</div>
+              <div class="rcard-sub">Dependendo do perfil da pessoa</div>
+            </div>
+          </div>
+          <div class="rcard" data-v="Indicaria depois de implementar mudanças" onclick="pickRadio(this)">
+            <div class="rcard-dot"></div>
+            <span class="rcard-emoji">🔧</span>
+            <div>
+              <div class="rcard-text">Indicaria após melhorias</div>
+              <div class="rcard-sub">Precisa de alguns ajustes antes</div>
+            </div>
+          </div>
+          <div class="rcard" data-v="Não" onclick="pickRadio(this)">
+            <div class="rcard-dot"></div>
+            <span class="rcard-emoji">❌</span>
+            <div>
+              <div class="rcard-text">Não indicaria</div>
+              <div class="rcard-sub">Minha experiência não foi boa</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-back" onclick="goTo(3)">← Voltar</button>
+          <button class="btn-next" id="btn4" disabled onclick="submit()">
+            ENVIAR 🚲
+          </button>
+        </div>
+      </div>
+
+      <!-- SUCCESS -->
+      <div class="step" id="step-success">
+        <div class="success-ring">🏅</div>
+        <h2 class="success-title">Mandou bem!</h2>
+        <p class="success-sub">Obrigado pelo seu feedback. Cada opinião nos ajuda a pedalar mais rápido rumo à melhor experiência de compra de bikes do Brasil.</p>
+        <div class="success-tag">⚡ VeloStore agradece sua resposta</div>
+      </div>
+
+    </div><!-- /form-inner -->
+  </div><!-- /panel-right -->
+</div><!-- /shell -->
+
+<script>
+const state = { nome:'', nps:null, exp:'', indica:'' };
+
+const panels = {
+  1: { img:'img-1', title:'Pedala com a gente?',   sub:'Queremos saber como foi sua experiência em nossa loja de bikes.', step:'BOAS-VINDAS', dn:'dn1' },
+  2: { img:'img-2', title:'Qualidade que você merece.', sub:'Avalie nosso app e nos ajude a ser campeões em atendimento.', step:'SATISFAÇÃO', dn:'dn2' },
+  3: { img:'img-3', title:'Sua opinião acelera nossa evolução.', sub:'Detalhe o que sentiu ao usar o app da VeloStore.', step:'EXPERIÊNCIA', dn:'dn3' },
+  4: { img:'img-4', title:'Juntos somos mais fortes.', sub:'A comunidade ciclista cresce quando compartilhamos boas dicas.', step:'INDICAÇÃO', dn:'dn4' },
+};
+
+const npsLabels = ['😢 Terrível','😢 Muito ruim','😞 Ruim','😕 Abaixo do esperado','😐 Insatisfeito','😐 Regular','🙂 Ok, mas...','😊 Bom','😄 Muito bom!','🤩 Excelente!','🏆 Perfeito!'];
+const progress = { 1:'25%', 2:'50%', 3:'75%', 4:'100%' };
+
+// Build NPS
+const npsGrid = document.getElementById('nps-grid');
+for (let i=0;i<=10;i++){
+  const b = document.createElement('button');
+  b.className='nps-btn'; b.textContent=i; b.dataset.v=i;
+  b.onclick = () => selectNPS(i, b);
+  npsGrid.appendChild(b);
+}
+
+// Nome
+const inpNome = document.getElementById('inp-nome');
+inpNome.oninput = () => {
+  state.nome = inpNome.value.trim();
+  document.getElementById('btn1').disabled = !state.nome;
+};
+inpNome.onkeydown = e => { if(e.key==='Enter' && state.nome) goTo(2); };
+
+// Textarea
+const inpExp = document.getElementById('inp-exp');
+inpExp.oninput = () => {
+  state.exp = inpExp.value.trim();
+  document.getElementById('char-cnt').textContent = inpExp.value.length;
+  document.getElementById('btn3').disabled = state.exp.length < 5;
+};
+
+function selectNPS(v, btn) {
+  state.nps = v;
+  document.querySelectorAll('.nps-btn').forEach(b => {
+    b.classList.remove('sel-bad','sel-ok','sel-good');
+  });
+  const cls = v<=6 ? 'sel-bad' : v<=8 ? 'sel-ok' : 'sel-good';
+  btn.classList.add(cls);
+  const mood = document.getElementById('nps-mood');
+  mood.textContent = npsLabels[v];
+  mood.className = 'nps-mood visible';
+  document.getElementById('btn2').disabled = false;
+}
+
+function pickRadio(el) {
+  document.querySelectorAll('.rcard').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.indica = el.dataset.v;
+  document.getElementById('btn4').disabled = false;
+}
+
+function thumbClick(el, idx) {
+  document.querySelectorAll('.app-thumb').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  // sync left panel
+  switchPanel(idx+1);
+}
+
+function switchPanel(n) {
+  const p = panels[n];
+  if(!p) return;
+  // images
+  document.querySelectorAll('.bg-img').forEach(i => i.classList.remove('active'));
+  document.getElementById(p.img).classList.add('active');
+  // captions
+  document.getElementById('cap-title').textContent = p.title;
+  document.getElementById('cap-sub').textContent   = p.sub;
+  document.getElementById('cap-step').textContent  = p.step;
+  // dots
+  document.querySelectorAll('.dnav').forEach(d => d.classList.remove('active'));
+  document.getElementById(p.dn).classList.add('active');
+}
+
+function goTo(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  const el = n==='success'
+    ? document.getElementById('step-success')
+    : document.getElementById('step-'+n);
+  el.classList.add('active');
+  if(typeof n === 'number') {
+    document.getElementById('prog').style.width = progress[n];
+    switchPanel(n);
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function submit() {
+  const base = 'https://docs.google.com/forms/d/e/1FAIpQLSd7-1hVt3cXU-vDAF60pwGvf2EJ9C2z7YH0Z0MsgZDaLDTNFA/formResponse';
+  const p = new URLSearchParams({
+    'entry.1297680896': state.nome,
+    'entry.1569423964': state.nps,
+    'entry.1309526635': state.exp,
+    'entry.505941788':  state.indica,
+  });
+  fetch(`${base}?${p.toString()}`, { method:'POST', mode:'no-cors' }).catch(()=>{});
+  // Success panel
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-success').classList.add('active');
+  document.getElementById('prog').style.width = '100%';
+  // Left panel
+  document.querySelectorAll('.bg-img').forEach(i => i.classList.remove('active'));
+  document.getElementById('img-1').classList.add('active');
+  document.getElementById('cap-title').textContent = 'Obrigado, ' + state.nome + '! 🏅';
+  document.getElementById('cap-sub').textContent   = 'Seu feedback faz toda a diferença para a VeloStore.';
+  document.getElementById('cap-step').textContent  = 'MISSÃO CUMPRIDA';
+}
+</script>
+</body>
+</html>
